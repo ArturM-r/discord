@@ -3,17 +3,19 @@ package initroute
 import (
 	"context"
 	"discord/internal/channel"
+	"discord/internal/checkmember"
 	"discord/internal/members"
 	"discord/internal/message"
 	"discord/internal/server"
 	"discord/internal/user"
 	"discord/ws"
+	"fmt"
 	"net/http"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func Init(db *pgxpool.Pool, secret string, ctx context.Context) *http.ServeMux {
+func Init(db *pgxpool.Pool, secret string, ctx context.Context) (*http.ServeMux, error) {
 	userHandler := user.NewHandler(user.NewService(user.NewRepository(db), secret))
 	serverHandler := server.NewHandlerServer(server.NewService(server.NewMessagePool(db)))
 	memberHandler := members.NewHandlerMbr(members.NewServiceMbr(members.NewRepository(db)))
@@ -22,7 +24,15 @@ func Init(db *pgxpool.Pool, secret string, ctx context.Context) *http.ServeMux {
 
 	msgRepo := message.NewMessagePool(db)
 
-	hub := ws.NewHub(msgRepo)
+	m, err := checkmember.Unload(ctx, db)
+
+	MemberCache := checkmember.NewMemberCache(m)
+
+	if err != nil {
+		return nil, fmt.Errorf("memberchache unload problem: %w", err)
+	}
+
+	hub := ws.NewHub(msgRepo, MemberCache)
 	go hub.Run(ctx)
 
 	mux := http.NewServeMux()
@@ -97,5 +107,5 @@ func Init(db *pgxpool.Pool, secret string, ctx context.Context) *http.ServeMux {
 	// websocket
 	mux.HandleFunc("/ws", hub.WsHandler)
 
-	return mux
+	return mux, nil
 }

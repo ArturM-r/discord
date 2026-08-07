@@ -24,30 +24,43 @@ func (h *Hub) WsHandler(w http.ResponseWriter, r *http.Request) {
 		jwt.JsonError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	channelID, err := uuid.Parse(r.URL.Query().Get("channel_id"))
+	serverID, err := uuid.Parse(r.URL.Query().Get("server_id"))
 	if err != nil {
 		http.Error(w, "invalid channel_id", http.StatusBadRequest)
 		return
 	}
 
+	if !h.membercache.IsMemberCache(serverID, userID) {
+		http.Error(w, "forbidden: not a member:", http.StatusForbidden)
+		return
+	}
+
 	conn, err := upgrader.Upgrade(w, r, nil)
 
+	if err != nil {
+		http.Error(w, "websocket error", http.StatusInternalServerError)
+		return
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+
 	client := &Client{
-		UserID:    userID,
-		ChannelID: channelID,
-		Conn:      conn,
-		Send:      make(chan []byte, 256),
+		UserID:   userID,
+		ServerID: serverID,
+		Conn:     conn,
+		Send:     make(chan []byte, 256),
+		Cancel:   cancel,
 	}
 
 	h.register <- client
 
 	go client.WritePump()
 
-	go client.ReadPump(r.Context(), h)
+	go client.ReadPump(ctx, h)
 
 }
 
 func (c *Client) WritePump() {
+
 	defer c.Conn.Close()
 
 	for msg := range c.Send {
@@ -75,7 +88,7 @@ func (c *Client) ReadPump(ctx context.Context, hub *Hub) {
 			return
 		}
 
-		msg, err := hub.repo.WriteMessage(ctx, c.ChannelID, c.UserID, string(data))
+		msg, err := hub.repo.WriteMessage(ctx, c.ServerID, c.UserID, string(data))
 		if err != nil {
 			continue
 		}

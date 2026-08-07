@@ -31,7 +31,10 @@ func main() {
 	cfg := config.GetConfig()
 	config.RunMigrations(cfg.DatabaseUrl)
 
-	mux := initroute.Init(db, cfg.HMACKey, ongoingCtx)
+	mux, err := initroute.Init(db, cfg.HMACKey, ongoingCtx)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	server := &http.Server{
 		Addr:    ":8080",
@@ -59,7 +62,7 @@ func main() {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), _shutdownPeriod)
 	defer cancel()
 	stopOngoingGracefully()
-	err := server.Shutdown(shutdownCtx)
+	err = server.Shutdown(shutdownCtx)
 
 	if err != nil {
 		log.Println("Forced shutdown after timeout")

@@ -1,22 +1,27 @@
 package ws
 
 import (
+	"context"
+	"discord/internal/checkmember"
 	"discord/internal/message"
+
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
 
 type Client struct {
-	UserID    uuid.UUID
-	ChannelID uuid.UUID
-	Conn      *websocket.Conn
-	Send      chan []byte
+	UserID   uuid.UUID
+	ServerID uuid.UUID
+	Conn     *websocket.Conn
+	Send     chan []byte
+	Cancel   context.CancelFunc
 }
 
 type Hub struct {
-	repo       *message.Repo
-	channels   map[uuid.UUID]map[*Client]struct{}
-	broadcast  chan message.Message
-	register   chan *Client
-	unregister chan *Client
+	repo        *message.Repo
+	servers     map[uuid.UUID]map[*Client]struct{}
+	broadcast   chan message.Message
+	register    chan *Client
+	unregister  chan *Client
+	membercache *checkmember.MemberCache
 }
