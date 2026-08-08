@@ -23,9 +23,10 @@ type ServiceSrv struct {
 	db   *pgxpool.Pool
 }
 
-func NewService(repo Repository) *ServiceSrv {
+func NewService(repo Repository, db *pgxpool.Pool) *ServiceSrv {
 	return &ServiceSrv{
 		repo: repo,
+		db: db,
 	}
 }
 
@@ -41,7 +42,7 @@ func (s *ServiceSrv) CreateSrvService(ctx context.Context, userID uuid.UUID, nam
 
 func (s *ServiceSrv) GetSrvUserService(ctx context.Context, userID uuid.UUID) ([]Server, error) {
 
-	//need middleware to get role and pagination ofc
+
 	return s.repo.GetSrvUser(ctx, userID)
 }
 

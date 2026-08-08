@@ -17,7 +17,7 @@ import (
 
 func Init(db *pgxpool.Pool, secret string, ctx context.Context) (*http.ServeMux, error) {
 	userHandler := user.NewHandler(user.NewService(user.NewRepository(db), secret))
-	serverHandler := server.NewHandlerServer(server.NewService(server.NewMessagePool(db)))
+	serverHandler := server.NewHandlerServer(server.NewService(server.NewMessagePool(db), db))
 	memberHandler := members.NewHandlerMbr(members.NewServiceMbr(members.NewRepository(db)))
 	channelHandler := channel.NewHandler(channel.NewService(channel.NewChannelPool(db)))
 	messageHandler := message.NewHandler(message.NewService(message.NewMessagePool(db)))
