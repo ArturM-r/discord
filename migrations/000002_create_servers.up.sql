@@ -1,0 +1,8 @@
+-- +migrate Up
+
+CREATE TABLE IF NOT EXISTS servers (
+  id UUID PRIMARY KEY,
+  name TEXT NOT NULL,
+  owner_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);

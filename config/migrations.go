@@ -10,8 +10,9 @@ import (
 )
 
 func RunMigrations(databaseURL string) {
+	sourceURL := "file://migrations"
 	m, err := migrate.New(
-		"file://migrations",
+		sourceURL,
 		databaseURL,
 	)
 	if err != nil {
