@@ -15,13 +15,16 @@ type Repository interface {
 }
 
 type Service struct {
-	repo Repository
-	db   *pgxpool.Pool
+	repo        Repository
+	db          *pgxpool.Pool
+	memberCache *checkmember.MemberCache
 }
 
-func NewServiceMbr(repo Repository) *Service {
+func NewServiceMbr(repo Repository, db *pgxpool.Pool, memberCache *checkmember.MemberCache) *Service {
 	return &Service{
-		repo: repo,
+		repo:        repo,
+		db:          db,
+		memberCache: memberCache,
 	}
 }
 
@@ -33,7 +36,12 @@ func (s *Service) CreateMember(ctx context.Context, userID uuid.UUID, serverID u
 	}
 	switch role {
 	case "owner", "admin", "member":
-		return s.repo.CreateMember(ctx, userID, serverID)
+		member, err := s.repo.CreateMember(ctx, userID, serverID)
+		if err != nil {
+			return Member{}, err
+		}
+		s.memberCache.Add(serverID, userID)
+		return member, nil
 	default:
 		return Member{}, fmt.Errorf("forbidden")
 	}
@@ -46,7 +54,12 @@ func (s *Service) DeleteMember(ctx context.Context, userID uuid.UUID, targetID u
 	}
 
 	if userID == targetID {
-		return s.repo.DeleteMember(ctx, serverID, userID)
+		member, err := s.repo.DeleteMember(ctx, serverID, userID)
+		if err != nil {
+			return Member{}, err
+		}
+		s.memberCache.RemoveMember(serverID, userID)
+		return member, nil
 	}
 
 	if role != "owner" && role != "admin" {
@@ -61,5 +74,10 @@ func (s *Service) DeleteMember(ctx context.Context, userID uuid.UUID, targetID u
 		return Member{}, fmt.Errorf("cannot kick owner")
 	}
 
-	return s.repo.DeleteMember(ctx, serverID, targetID)
+	member, err := s.repo.DeleteMember(ctx, serverID, targetID)
+	if err != nil {
+		return Member{}, err
+	}
+	s.memberCache.RemoveMember(serverID, targetID)
+	return member, nil
 }

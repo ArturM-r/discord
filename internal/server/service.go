@@ -19,14 +19,16 @@ type Repository interface {
 }
 
 type ServiceSrv struct {
-	repo Repository
-	db   *pgxpool.Pool
+	repo        Repository
+	db          *pgxpool.Pool
+	memberCache *checkmember.MemberCache
 }
 
-func NewService(repo Repository, db *pgxpool.Pool) *ServiceSrv {
+func NewService(repo Repository, db *pgxpool.Pool, memberCache *checkmember.MemberCache) *ServiceSrv {
 	return &ServiceSrv{
-		repo: repo,
-		db: db,
+		repo:        repo,
+		db:          db,
+		memberCache: memberCache,
 	}
 }
 
@@ -37,11 +39,15 @@ func (s *ServiceSrv) CreateSrvService(ctx context.Context, userID uuid.UUID, nam
 	if len(name) > 100 {
 		return Server{}, fmt.Errorf("name too long")
 	}
-	return s.repo.CreateSRV(ctx, userID, name)
+	server, err := s.repo.CreateSRV(ctx, userID, name)
+	if err != nil {
+		return Server{}, err
+	}
+	s.memberCache.Add(server.ID, userID)
+	return server, nil
 }
 
 func (s *ServiceSrv) GetSrvUserService(ctx context.Context, userID uuid.UUID) ([]Server, error) {
-
 
 	return s.repo.GetSrvUser(ctx, userID)
 }
@@ -67,5 +73,10 @@ func (s *ServiceSrv) DeleteSrvService(ctx context.Context, id uuid.UUID, userID 
 		return Server{}, fmt.Errorf("forbidden")
 	}
 
-	return s.repo.DeleteServer(ctx, id)
+	server, err := s.repo.DeleteServer(ctx, id)
+	if err != nil {
+		return Server{}, err
+	}
+	s.memberCache.RemoveServer(id)
+	return server, nil
 }

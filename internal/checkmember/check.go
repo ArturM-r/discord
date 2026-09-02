@@ -53,23 +53,33 @@ func Unload(ctx context.Context, db *pgxpool.Pool) (map[uuid.UUID]map[uuid.UUID]
 
 func (c *MemberCache) IsMemberCache(serverID, userID uuid.UUID) bool {
 	c.mu.RLock()
-	defer c.mu.Unlock()
+	defer c.mu.RUnlock()
 	_, ok := c.servers[serverID][userID]
 	return ok
 }
 
 func (c *MemberCache) Add(serverID, userID uuid.UUID) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if c.servers[serverID] == nil {
 		c.servers[serverID] = make(map[uuid.UUID]struct{})
 	}
 	c.servers[serverID][userID] = struct{}{}
 }
+
 func (c *MemberCache) RemoveMember(serverID, userID uuid.UUID) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	delete(c.servers[serverID], userID)
+	if len(c.servers[serverID]) == 0 {
+		delete(c.servers, serverID)
+	}
+}
+
+func (c *MemberCache) RemoveServer(serverID uuid.UUID) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.servers, serverID)
 }
 
 func IsMember(ctx context.Context, db *pgxpool.Pool, userID uuid.UUID, serverID uuid.UUID) (bool, error) {
