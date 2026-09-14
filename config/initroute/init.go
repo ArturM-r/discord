@@ -38,11 +38,9 @@ func Init(db *pgxpool.Pool, secret string, ctx context.Context) (http.Handler, e
 
 	mux := http.NewServeMux()
 
-	// auth
 	mux.HandleFunc("/auth/register", userHandler.Register)
 	mux.HandleFunc("/auth/login", userHandler.Login)
 
-	// servers
 	mux.HandleFunc("/servers", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
@@ -64,7 +62,6 @@ func Init(db *pgxpool.Pool, secret string, ctx context.Context) (http.Handler, e
 		}
 	})
 
-	// members
 	mux.HandleFunc("/servers/{id}/members", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodPost:
@@ -82,7 +79,6 @@ func Init(db *pgxpool.Pool, secret string, ctx context.Context) (http.Handler, e
 		}
 	})
 
-	// channels
 	mux.HandleFunc("/servers/{id}/channels", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
@@ -102,10 +98,8 @@ func Init(db *pgxpool.Pool, secret string, ctx context.Context) (http.Handler, e
 		}
 	})
 
-	// messages
 	mux.HandleFunc("/channels/{id}/messages", messageHandler.GetMessages)
 
-	// websocket
 	mux.HandleFunc("/ws", hub.WsHandler)
 
 	authMiddleware := jwt.NewAuthMiddleware(secret)

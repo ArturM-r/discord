@@ -61,11 +61,6 @@ func main() {
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), _shutdownPeriod)
 	defer cancel()
-	// server.Shutdown waits for in-flight requests to finish, and those
-	// requests run under ongoingCtx (it's the server's BaseContext and the
-	// DB pool's context). Cancelling it before Shutdown returns - as this
-	// used to do - killed every in-flight request and DB query immediately
-	// instead of giving them the shutdown window to complete.
 	err = server.Shutdown(shutdownCtx)
 
 	if err != nil {

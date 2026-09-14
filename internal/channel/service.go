@@ -27,9 +27,6 @@ func NewService(repo Repository, db *pgxpool.Pool) *ServiceCHN {
 	}
 }
 
-// requireMember guards against any authenticated user reaching into a
-// server's channels regardless of whether they belong to it - previously
-// none of these methods checked membership at all.
 func (s *ServiceCHN) requireMember(ctx context.Context, serverID, userID uuid.UUID) error {
 	ok, err := checkmember.IsMember(ctx, s.db, serverID, userID)
 	if err != nil {

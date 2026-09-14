@@ -29,9 +29,6 @@ func NewServiceMbr(repo Repository, db *pgxpool.Pool, memberCache *checkmember.M
 }
 
 func (s *Service) CreateMember(ctx context.Context, userID uuid.UUID, serverID uuid.UUID) (Member, error) {
-	// Joining a server must not require already being a member of it -
-	// this used to call GetMemberRole first and reject anyone who wasn't
-	// already a member, which made it impossible for a new user to ever join.
 	member, err := s.repo.CreateMember(ctx, userID, serverID)
 	if err != nil {
 		return Member{}, err

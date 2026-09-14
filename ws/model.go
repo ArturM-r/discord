@@ -26,18 +26,11 @@ type Hub struct {
 	membercache *checkmember.MemberCache
 }
 
-// BroadcastMessage carries the server a message belongs to alongside the
-// message itself, since h.servers is keyed by server ID and message.Message
-// only carries a channel ID - broadcasting by msg.ChannelID against a
-// server-keyed map never matched any connected client.
 type BroadcastMessage struct {
 	ServerID uuid.UUID
 	Msg      message.Message
 }
 
-// incomingMessage is the JSON payload a client sends over the websocket
-// connection. A channel ID is required because messages.channel_id is a
-// NOT NULL foreign key - without it, every inbound message failed to persist.
 type incomingMessage struct {
 	ChannelID uuid.UUID `json:"channel_id"`
 	Content   string    `json:"content"`
