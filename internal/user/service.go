@@ -2,7 +2,6 @@ package user
 
 import (
 	"context"
-	"database/sql"
 	"discord/internal/errs"
 	"discord/internal/jwt"
 	"errors"
@@ -40,8 +39,8 @@ func (s *ServiceSTR) Registration(ctx context.Context, email string, password st
 
 	user, err := s.repository.Registration(ctx, email, passwordHash)
 	if err != nil {
-		if errors.Is(err, errs.ErrBadRequest) {
-			return nil, errs.ErrBadRequest
+		if errors.Is(err, errs.ErrBadRequest) || errors.Is(err, errs.ErrEmailExists) {
+			return nil, err
 		}
 		return nil, fmt.Errorf("register user: %w", err)
 	}
@@ -60,7 +59,7 @@ func (s *ServiceSTR) Login(ctx context.Context, email string, password string) (
 	}
 	user, err := s.repository.GetByEmail(ctx, email)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, errs.ErrNotFound) {
 			return nil, errs.ErrInvalidCredentials
 		}
 		return nil, fmt.Errorf("get user by email: %w", err)

@@ -13,7 +13,7 @@ func NewHub(repo *message.Repo, memberCache *checkmember.MemberCache) *Hub {
 	return &Hub{
 		repo:        repo,
 		servers:     make(map[uuid.UUID]map[*Client]struct{}),
-		broadcast:   make(chan message.Message),
+		broadcast:   make(chan BroadcastMessage),
 		register:    make(chan *Client),
 		unregister:  make(chan *Client),
 		membercache: memberCache,
@@ -49,14 +49,14 @@ func (h *Hub) Run(ctx context.Context) {
 			}
 			client.Cancel()
 
-		case msg := <-h.broadcast:
+		case bm := <-h.broadcast:
 
-			data, err := json.Marshal(msg)
+			data, err := json.Marshal(bm.Msg)
 			if err != nil {
 				continue
 			}
 
-			for client := range h.servers[msg.ChannelID] {
+			for client := range h.servers[bm.ServerID] {
 				select {
 				case client.Send <- data:
 				default:

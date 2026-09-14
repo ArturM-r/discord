@@ -82,7 +82,7 @@ func (c *MemberCache) RemoveServer(serverID uuid.UUID) {
 	delete(c.servers, serverID)
 }
 
-func IsMember(ctx context.Context, db *pgxpool.Pool, userID uuid.UUID, serverID uuid.UUID) (bool, error) {
+func IsMember(ctx context.Context, db *pgxpool.Pool, serverID uuid.UUID, userID uuid.UUID) (bool, error) {
 	query := `SELECT EXISTS(
     SELECT 1 FROM members 
     WHERE server_id = $1 AND user_id = $2

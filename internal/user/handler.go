@@ -2,8 +2,10 @@ package user
 
 import (
 	"context"
+	"discord/internal/errs"
 	"discord/internal/jwt"
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -29,12 +31,19 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-		jwt.JsonError(w, "bad request", 401)
+		jwt.JsonError(w, "bad request", http.StatusBadRequest)
 		return
 	}
 	response, err := h.service.Registration(r.Context(), user.Email, user.Password)
 	if err != nil {
-		jwt.JsonError(w, err.Error(), 401)
+		switch {
+		case errors.Is(err, errs.ErrBadRequest):
+			jwt.JsonError(w, err.Error(), http.StatusBadRequest)
+		case errors.Is(err, errs.ErrEmailExists):
+			jwt.JsonError(w, err.Error(), http.StatusConflict)
+		default:
+			jwt.JsonError(w, "registration failed", http.StatusInternalServerError)
+		}
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")

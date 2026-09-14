@@ -3,7 +3,9 @@ package ws
 import (
 	"context"
 	"discord/internal/jwt"
+	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -88,11 +90,19 @@ func (c *Client) ReadPump(ctx context.Context, hub *Hub) {
 			return
 		}
 
-		msg, err := hub.repo.WriteMessage(ctx, c.ServerID, c.UserID, string(data))
+		var in incomingMessage
+		if err := json.Unmarshal(data, &in); err != nil {
+			continue
+		}
+		if in.ChannelID == uuid.Nil || strings.TrimSpace(in.Content) == "" {
+			continue
+		}
+
+		msg, err := hub.repo.WriteMessage(ctx, in.ChannelID, c.UserID, in.Content)
 		if err != nil {
 			continue
 		}
 
-		hub.broadcast <- msg
+		hub.broadcast <- BroadcastMessage{ServerID: c.ServerID, Msg: msg}
 	}
 }

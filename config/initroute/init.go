@@ -4,6 +4,7 @@ import (
 	"context"
 	"discord/internal/channel"
 	"discord/internal/checkmember"
+	"discord/internal/jwt"
 	"discord/internal/members"
 	"discord/internal/message"
 	"discord/internal/server"
@@ -15,9 +16,9 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func Init(db *pgxpool.Pool, secret string, ctx context.Context) (*http.ServeMux, error) {
+func Init(db *pgxpool.Pool, secret string, ctx context.Context) (http.Handler, error) {
 	userHandler := user.NewHandler(user.NewService(user.NewRepository(db), secret))
-	channelHandler := channel.NewHandler(channel.NewService(channel.NewChannelPool(db)))
+	channelHandler := channel.NewHandler(channel.NewService(channel.NewChannelPool(db), db))
 	messageHandler := message.NewHandler(message.NewService(message.NewMessagePool(db)))
 
 	msgRepo := message.NewMessagePool(db)
@@ -107,5 +108,6 @@ func Init(db *pgxpool.Pool, secret string, ctx context.Context) (*http.ServeMux,
 	// websocket
 	mux.HandleFunc("/ws", hub.WsHandler)
 
-	return mux, nil
+	authMiddleware := jwt.NewAuthMiddleware(secret)
+	return authMiddleware.Authorize(mux), nil
 }

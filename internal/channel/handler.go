@@ -11,9 +11,9 @@ import (
 )
 
 type Service interface {
-	GetChService(ctx context.Context, serverID uuid.UUID) ([]Channel, error)
-	CreateChService(ctx context.Context, serverID uuid.UUID, name string) (Channel, error)
-	DeleteChnService(ctx context.Context, serverID uuid.UUID, channelID uuid.UUID) (Channel, error)
+	GetChService(ctx context.Context, serverID uuid.UUID, userID uuid.UUID) ([]Channel, error)
+	CreateChService(ctx context.Context, serverID uuid.UUID, userID uuid.UUID, name string) (Channel, error)
+	DeleteChnService(ctx context.Context, serverID uuid.UUID, channelID uuid.UUID, userID uuid.UUID) (Channel, error)
 }
 
 type Handler struct {
@@ -36,7 +36,13 @@ func (h *Handler) GetChannel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := h.service.GetChService(r.Context(), id)
+	userID, ok := r.Context().Value("userID").(uuid.UUID)
+	if !ok {
+		jwt.JsonError(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	response, err := h.service.GetChService(r.Context(), id, userID)
 
 	if err != nil {
 		jwt.JsonError(w, "trouble with channel taken", http.StatusInternalServerError)
@@ -66,7 +72,13 @@ func (h *Handler) DeleteChannel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := h.service.DeleteChnService(r.Context(), serverID, channelID)
+	userID, ok := r.Context().Value("userID").(uuid.UUID)
+	if !ok {
+		jwt.JsonError(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	response, err := h.service.DeleteChnService(r.Context(), serverID, channelID, userID)
 	if err != nil {
 		jwt.JsonError(w, "trouble with channel delete", http.StatusInternalServerError)
 		return
@@ -100,7 +112,13 @@ func (h *Handler) CreateChannel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := h.service.CreateChService(r.Context(), serverID, channel.Name)
+	userID, ok := r.Context().Value("userID").(uuid.UUID)
+	if !ok {
+		jwt.JsonError(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	response, err := h.service.CreateChService(r.Context(), serverID, userID, channel.Name)
 	if err != nil {
 		jwt.JsonError(w, "failed to create channel", http.StatusInternalServerError)
 		return

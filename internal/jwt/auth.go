@@ -29,8 +29,6 @@ func (m *AuthMiddleware) Authorize(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		type contextKey string
-		const userIDKey contextKey = "userID"
 
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
@@ -73,7 +71,10 @@ func (m *AuthMiddleware) Authorize(next http.Handler) http.Handler {
 			JsonError(w, "invalid token subject", 401)
 			return
 		}
-		ctx := context.WithValue(r.Context(), userIDKey, userID)
+		// NOTE: every handler package reads this back with r.Context().Value("userID"),
+		// using a plain string literal rather than a typed context key. The key here
+		// must match that exactly (type and value), otherwise the lookup silently fails.
+		ctx := context.WithValue(r.Context(), "userID", userID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -31,6 +32,10 @@ func (r *Postgres) Registration(ctx context.Context, email string, passwordHash 
 		&u.ID, &u.Email, &u.PasswordHash, &u.CreatedAt,
 	)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return nil, errs.ErrEmailExists
+		}
 		return nil, fmt.Errorf("error inserting user: %w", err)
 	}
 	return &u, nil

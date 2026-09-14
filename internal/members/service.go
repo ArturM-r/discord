@@ -11,7 +11,7 @@ import (
 
 type Repository interface {
 	CreateMember(ctx context.Context, userID uuid.UUID, serverID uuid.UUID) (Member, error)
-	DeleteMember(ctx context.Context, userID uuid.UUID, serverID uuid.UUID) (Member, error)
+	DeleteMember(ctx context.Context, serverID uuid.UUID, userID uuid.UUID) (Member, error)
 }
 
 type Service struct {
@@ -29,22 +29,15 @@ func NewServiceMbr(repo Repository, db *pgxpool.Pool, memberCache *checkmember.M
 }
 
 func (s *Service) CreateMember(ctx context.Context, userID uuid.UUID, serverID uuid.UUID) (Member, error) {
-	role, err := checkmember.GetMemberRole(ctx, s.db, serverID, userID)
-
+	// Joining a server must not require already being a member of it -
+	// this used to call GetMemberRole first and reject anyone who wasn't
+	// already a member, which made it impossible for a new user to ever join.
+	member, err := s.repo.CreateMember(ctx, userID, serverID)
 	if err != nil {
-		return Member{}, fmt.Errorf("failed to get role: %w", err)
+		return Member{}, err
 	}
-	switch role {
-	case "owner", "admin", "member":
-		member, err := s.repo.CreateMember(ctx, userID, serverID)
-		if err != nil {
-			return Member{}, err
-		}
-		s.memberCache.Add(serverID, userID)
-		return member, nil
-	default:
-		return Member{}, fmt.Errorf("forbidden")
-	}
+	s.memberCache.Add(serverID, userID)
+	return member, nil
 }
 
 func (s *Service) DeleteMember(ctx context.Context, userID uuid.UUID, targetID uuid.UUID, serverID uuid.UUID) (Member, error) {

@@ -21,9 +21,9 @@ func NewChannelPool(db *pgxpool.Pool) *Repo {
 }
 
 func (r *Repo) GetChRepo(ctx context.Context, serverID uuid.UUID) ([]Channel, error) {
-	query := `SELECT c.id, c.server_id, c.name, c.created_at 
+	query := `SELECT c.id, c.server_id, c.name, c.created_at
         FROM channel c
-        JOIN server s ON c.server_id = s.id
+        JOIN servers s ON c.server_id = s.id
         WHERE c.server_id = $1
         ORDER BY c.created_at DESC
 	`
@@ -65,6 +65,7 @@ func (r *Repo) CreateChRepo(ctx context.Context, serverID uuid.UUID, name string
 		&channel.ID,
 		&channel.Server_id,
 		&channel.Name,
+		&channel.CreatedAT,
 	)
 
 	if err != nil {

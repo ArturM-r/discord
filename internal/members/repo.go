@@ -26,7 +26,7 @@ func (r *Repo) CreateMember(ctx context.Context, userID uuid.UUID, serverID uuid
 	`
 	var mbr Member
 
-	err := r.db.QueryRow(ctx, query, userID, serverID).Scan(
+	err := r.db.QueryRow(ctx, query, userID, serverID, "member").Scan(
 		&mbr.ID,
 		&mbr.ServerID,
 		&mbr.UserID,

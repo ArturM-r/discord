@@ -28,7 +28,7 @@ func (r *Repo) CreateSRV(ctx context.Context, userID uuid.UUID, name string) (Se
 	}
 	defer tx.Rollback(ctx)
 
-	query := `INSERT INTO server (name, owner_id) VALUES ($1, $2) RETURNING *`
+	query := `INSERT INTO servers (name, owner_id) VALUES ($1, $2) RETURNING *`
 
 	var srv Server
 
@@ -36,6 +36,7 @@ func (r *Repo) CreateSRV(ctx context.Context, userID uuid.UUID, name string) (Se
 		&srv.ID,
 		&srv.Name,
 		&srv.OwnerID,
+		&srv.CreatedAT,
 	)
 	if err != nil {
 		return Server{}, fmt.Errorf("failed to create server: %w", err)
